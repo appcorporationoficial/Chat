@@ -1,21 +1,51 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
+  <head>
+	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
 
-  <title>Sala de chat</title>
-  <style>
+
+	<title>Sala de chat</title>
+<style>
     body{
-	font-family: 
-	Arial;
+	font-family: Arial, sans-serif;
 	background-color: #09001F;
  
 	width: 100%; 
-	height: 100vh;
-   
+	margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
 }
+
+#chat-box {
+      flex: 1;
+      overflow-y: scroll;
+      padding: 10px;
+    }
+    #message-input {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-top: 1px solid #ccc;
+    }
+    #message-input input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      margin-right: 10px;
+    }
+    #message-input button {
+      padding: 8px 16px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
 button {
       margin: 10px 0;
       padding: 10px 20px;
@@ -39,64 +69,92 @@ button {
  flex-direction: column;
  } 
 
+ .videoBorder {
+ 
+	border-color: #aaaaaa;
+	border-width: 1px;
+	border-style: solid;
+	width: 320; 
+	margin: 10px 0; 
+	display: flex;
+ flex-direction: column;
+ } 
+ 
 strong { color:#3969B4; } 
 em { color:#f1f1f1; } 
 ul { color:#f1f1f1; } 
 
-  </style>
-</head>
-<body>
+</style>
+  </head>
+  <body>
 
-<h3 style="color:#06A400">Mensajes:</h3>
+	<h3 style="color:#06A400">Mensajes:</h3>
 
-<div id="messages"></div> 
- 
-<ul id="listado-msjs"></ul>
+	<div id="chat-box">
+	  
+	  <div id="messages"></div> 
 
-<div id="env-msjs">
+	  <ul id="listado-msjs"></ul>
+	  
+	</div> 
+	
+	<div id="message-input">
       <input style="color:#f1f1f1" id="nuevo-msj"  placeholder="Nuevo mensaje">
       <button id="btn-msj" onclick="enviarMensaje()">Enviar</button>
-  </div>
+	  <button id="btn-msj" onclick="subirReel()">video</button> 
+	</div>
 
-  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
+	<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
 
-  <script>
+<script>
     var socket = io(); // Inicializamos socketIO en el cliente
      
     /*
-     * Evento listener para el 'nuevo mensaje'
-     *   Se puede ver que es el mismo evento que se envia 
-     *   desde el servidor.
-     * Agregamos el mensaje ingresado por el usuario a la lista.
-     */
+ * Evento listener para el 'nuevo mensaje'
+ *   Se puede ver que es el mismo evento que se envia 
+ *   desde el servidor.
+ * Agregamos el mensaje ingresado por el usuario a la lista.
+ */
     socket.on('nuevo mensaje', function (msj) {
 	
-
-	$('#listado-msjs').append( $('<li>').html(`<div class="list">
+if (msj.video.includes('.mp4')) {
+	$('#listado-msjs').append( $('<li>').html(`<div class="videoBorder">
+              <strong style="color:#3969B4">${msj.user}</strong>
+              <video width="320" height="240" controls controlslist="nodownload" preload="metadata">
+    <source src=${msj.video}>
+  </video>
+            </div>`)); 
+			}else{
+			$('#listado-msjs').append( $('<li>').html(`<div class="list">
               <strong style="color:#3969B4">${msj.user}</strong>
               <em style="color:#f1f1f1">${msj.text}</em>
             </div>`)); 
+			} 
     });
      
     /*
-     * Emitimos un evento de tipo 'nuevo mensaje' cada vez
-     * que se presiona el botón enviar y enviamos
-     * su contenido como mensaje.
-     */
+ * Emitimos un evento de tipo 'nuevo mensaje' cada vez
+ * que se presiona el botï¿½n enviar y enviamos
+ * su contenido como mensaje.
+ */
     function enviarMensaje() {
 
 let objeto = {
   user : "@" + Android.getUser(),
   text : $('#nuevo-msj').val(),
+  video : 'null',
 };
         socket.emit('nuevo mensaje', objeto);
         $('#nuevo-msj').val('');
+		
     };
+	
+	
+	
+</script>
 
-  </script>
-
-  <script type="text/javascript">
+<script type="text/javascript">
 
   socket.on('db', function (msj) {
 
@@ -111,25 +169,54 @@ Android.updateChats();
 function render(data) {
   var html = data
     .map(function (elem, index) {
-      return `<div class="list">
+	
+	if (elem.video.includes('.mp4')) {
+      return `<div class="videoBorder">
+              <strong>${elem.user}</strong>
+              <video width="320" height="240" controls controlslist="nodownload" preload="metadata">
+    <source src=${elem.video}>
+  </video>
+            </div>`;
+	}else{
+	return `<div class="list">
               <strong>${elem.user}</strong>
               <em>${elem.text}</em>
             </div>`;
+	}
     })
     .join(" ");
 
   document.getElementById("messages").innerHTML = html;
 
 } 
-	</script>
-
- <script>
-
-
-
 </script>
 
+<script>
+  
+  function subirReel() { 
+	
+	Android.uploadVideo(); 
+	
+	}; 
+	
+	function scrollMessages(){
+	var chatBox = document.getElementById('chat-box');
+	chatBox.scrollTop = chatBox.scrollHeight; 
+	}
+	
+	function sendVideo() {
 
+let objeto = {
+  user : "@" + Android.getUser(),
+  text : $('#nuevo-msj').val(),
+  video : Android.getVideo(),
+};
+        socket.emit('nuevo mensaje', objeto);
+        $('#nuevo-msj').val('');
+		
+    }; 
+  
+</script>
 
-</body>
-</html>
+  </body>
+	      </html>
